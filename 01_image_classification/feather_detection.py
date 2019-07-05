@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -80,6 +81,8 @@ show_spectrum(other_words_spectrum, 'Smooth silky')
 show_spectrum(white_noise_spectrum, 'White noise')
 
 
+# Convert audio files to spectrograms
+
 # +
 def audio_files_to_spectrogram_image_files(source_dir, dest_dir):
     for audio_filename in os.listdir(source_dir):
@@ -102,7 +105,7 @@ audio_files_to_spectrogram_image_files('feather_sound_recordings', spectrogram_d
 from IPython.display import Image
 Image(filename='feather_spectrograms/feather_64_5_t_1.png')
 
-# ## Learn image classification model
+# ## Load spectrogram images
 
 from fastai.vision import *
 from fastai.metrics import error_rate
@@ -124,7 +127,52 @@ data.show_batch(rows=20, figsize=(20, 20))
 
 print(data.classes)
 
+# ## Augment Resnet 34 classification model
 
+# This doesn't work so hot...
+#
+# **Try learning more cycles/epochs!!!**
+
+learn = cnn_learner(data, models.resnet34, metrics=error_rate)
+
+learn.fit_one_cycle(4)
+
+learn.save('stage-1')
+
+# +
+interp = ClassificationInterpretation.from_learner(learn)
+
+losses,idxs = interp.top_losses()
+
+len(data.valid_ds)==len(losses)==len(idxs)
+# -
+
+interp.plot_top_losses(9, figsize=(15,11), heatmap=False)
+
+interp.plot_confusion_matrix(figsize=(5,5), dpi=60)
+
+# ## Customise resnet weights
+
+# This is a disaster, this model quickly finds a minimum in guessing that everything is noise 😞
+
+learn.load('stage-1')
+learn.unfreeze()
+
+learn.lr_find()
+
+learn.recorder.plot()
+
+learn.fit_one_cycle(4, max_lr=slice(1e-3,1e-1))
+
+# +
+interp_fine_tuned = ClassificationInterpretation.from_learner(learn)
+
+losses,idxs = interp.top_losses()
+
+len(data.valid_ds)==len(losses)==len(idxs)
+# -
+
+interp_fine_tuned.plot_confusion_matrix(figsize=(5,5), dpi=60)
 
 # ## Appendix - processing sound with scipy (getting bad spectra)
 

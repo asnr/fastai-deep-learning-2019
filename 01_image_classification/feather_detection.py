@@ -167,12 +167,62 @@ learn.fit_one_cycle(4, max_lr=slice(1e-3,1e-1))
 # +
 interp_fine_tuned = ClassificationInterpretation.from_learner(learn)
 
-losses,idxs = interp.top_losses()
+losses,idxs = interp_fine_tuned.top_losses()
 
 len(data.valid_ds)==len(losses)==len(idxs)
 # -
 
 interp_fine_tuned.plot_confusion_matrix(figsize=(5,5), dpi=60)
+
+# ## Normalised images
+
+# Normalising the images and training for longer gives slightly better results, but the model is still having a terrible time 
+
+normalised_data = ImageDataBunch.from_name_re(
+    images_path, image_filenames, pat, ds_tfms=None, size=224, bs=bs
+).normalize(imagenet_stats)
+
+normalised_data.show_batch(rows=20, figsize=(20, 20))
+
+learn = cnn_learner(normalised_data, models.resnet34, metrics=error_rate)
+
+learn.fit_one_cycle(16)
+
+# +
+interp_normalised = ClassificationInterpretation.from_learner(learn)
+
+losses,idxs = interp_normalised.top_losses()
+
+len(normalised_data.valid_ds)==len(losses)==len(idxs)
+# -
+
+interp_normalised.plot_confusion_matrix(figsize=(5,5), dpi=60)
+
+interp_normalised.plot_top_losses(9, figsize=(15,11), heatmap=False)
+
+losses, idxs = interp_normalised.top_losses()
+
+losses, idxs
+
+normalised_data.valid_ds.fnames
+
+doc(ImageDataBunch)
+
+normalised_data.valid_dl
+
+normalised_data.path
+
+dir(normalised_data.)
+
+
+
+
+
+
+
+
+
+
 
 # ## Appendix - processing sound with scipy (getting bad spectra)
 
